@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FireSentinel — Dashboard</title>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600&display=swap"
+    rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+  <link href="css/dashboard.css" rel="stylesheet">
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+</head>
+
+<body>
+
+  <!-- TOP NAVBAR -->
+  <header class="navbar">
+    <div class="nav-left">
+      <div class="nav-logo">🔥</div>
+      <h1 class="nav-title">Fire<span>Sentinel</span></h1>
+    </div>
+    <nav class="nav-tabs">
+      <button class="nav-tab active" onclick="switchPage('dashboard',this)"><i class="fas fa-th-large"></i><span>Tổng
+          quan</span></button>
+      <button class="nav-tab" onclick="switchPage('sensors',this)"><i class="fas fa-microchip"></i><span>Cảm
+          biến</span></button>
+      <button class="nav-tab" onclick="switchPage('camera',this)"><i
+          class="fas fa-video"></i><span>Camera</span></button>
+      <button class="nav-tab" onclick="switchPage('history',this)"><i class="fas fa-clock-rotate-left"></i><span>Lịch
+          sử</span></button>
+      <button class="nav-tab" onclick="switchPage('settings',this)"><i class="fas fa-cog"></i><span>Cài
+          đặt</span></button>
+    </nav>
+    <div class="nav-right">
+      <div class="live-badge" id="topBadge"><span class="live-dot"></span>LIVE</div>
+      <div class="nav-clock" id="clock">--:--:--</div>
+      <div class="theme-sw" id="themeSw">
+        <button class="nav-btn" onclick="document.getElementById('themeSw').classList.toggle('open')"><i
+            class="fas fa-palette"></i></button>
+        <div class="theme-dd">
+          <div class="theme-dd-title">🎨 Chọn giao diện</div>
+          <div class="theme-grid">
+            <button class="t-opt active" data-theme="default" onclick="setTheme('default')"><span
+                style="background:linear-gradient(135deg,#060b18,#1e293b)"></span><small>Midnight</small></button>
+            <button class="t-opt" data-theme="ocean" onclick="setTheme('ocean')"><span
+                style="background:linear-gradient(135deg,#0a192f,#112240)"></span><small>Ocean</small></button>
+            <button class="t-opt" data-theme="emerald" onclick="setTheme('emerald')"><span
+                style="background:linear-gradient(135deg,#041f1e,#0a2f2d)"></span><small>Emerald</small></button>
+            <button class="t-opt" data-theme="purple" onclick="setTheme('purple')"><span
+                style="background:linear-gradient(135deg,#13071e,#1a0a2e)"></span><small>Cosmic</small></button>
+            <button class="t-opt" data-theme="rose" onclick="setTheme('rose')"><span
+                style="background:linear-gradient(135deg,#1a0a14,#2d0f1e)"></span><small>Rose</small></button>
+            <button class="t-opt" data-theme="light" onclick="setTheme('light')"><span
+                style="background:linear-gradient(135deg,#f0f4f8,#dbe4ef)"></span><small>Light</small></button>
+          </div>
+        </div>
+      </div>
+      <button class="nav-btn" onclick="toggleNotifPanel()" id="notifBtn"><i class="fas fa-bell"></i><span class="n-dot"
+          id="notifDot" style="display:none"></span></button>
+      <div class="nav-avatar" id="userInitial" onclick="if(confirm('Đăng xuất?'))logout()">U</div>
+    </div>
+  </header>
+
+  <main class="content">
+    <!-- ========== DASHBOARD ========== -->
+    <section class="page active" id="page-dashboard">
+
+      <!-- Hero Status -->
+      <div class="hero safe" id="statusBanner">
+        <div class="hero-bg"></div>
+        <div class="hero-content">
+          <div class="hero-icon" id="statusIcon">🛡️</div>
+          <div class="hero-info">
+            <h2 id="statusTitle">HỆ THỐNG AN TOÀN</h2>
+            <p id="statusSub">Tất cả cảm biến hoạt động bình thường</p>
+          </div>
+          <div class="hero-tag" id="statusTag">✓ NORMAL</div>
+        </div>
+      </div>
+
+      <!-- Bento Grid -->
+      <div class="bento">
+        <!-- Sensor: Temp -->
+        <div class="bento-card sensor-card" id="cardTemp">
+          <div class="sc-top">
+            <div class="sc-icon temp">🌡️</div><span class="sc-tag ok" id="tagTemp">OK</span>
+          </div>
+          <div class="sc-label">Nhiệt độ (Phòng ngủ)</div>
+          <div class="sc-value"><span id="valTemp">--</span><small>°C</small></div>
+          <div class="sc-bar">
+            <div class="sc-bar-fill temp-fill" id="barTemp" style="width:0%"></div>
+          </div>
+        </div>
+        <!-- Sensor: Humidity -->
+        <div class="bento-card sensor-card" id="cardHum">
+          <div class="sc-top">
+            <div class="sc-icon hum">💧</div><span class="sc-tag ok" id="tagHum">OK</span>
+          </div>
+          <div class="sc-label">Độ ẩm (Phòng ngủ)</div>
+          <div class="sc-value"><span id="valHum">--</span><small>%</small></div>
+          <div class="sc-bar">
+            <div class="sc-bar-fill hum-fill" id="barHum" style="width:0%"></div>
+          </div>
+        </div>
+        <!-- Sensor: Gas -->
+        <div class="bento-card sensor-card" id="cardGas">
+          <div class="sc-top">
+            <div class="sc-icon gas">☁️</div><span class="sc-tag ok" id="tagGas">OK</span>
+          </div>
+          <div class="sc-label">Khói / Gas (Phòng khách)</div>
+          <div class="sc-value"><span id="valGas">--</span><small>ppm</small></div>
+          <div class="sc-bar">
+            <div class="sc-bar-fill gas-fill" id="barGas" style="width:0%"></div>
+          </div>
+        </div>
+
+        <!-- Camera (span 2 cols) -->
+        <div class="bento-card cam-card span-2">
+          <div class="bc-title"><i class="fas fa-video"></i> Camera (Hành lang/Cửa)<span class="cam-live-tag"><span
+                class="cam-dot"></span>LIVE</span></div>
+          <div class="cam-view">
+            <div class="cam-scan"></div>
+            <div class="c tl"></div>
+            <div class="c tr"></div>
+            <div class="c bl"></div>
+            <div class="c br"></div>
+            <div class="cam-ts" id="camTs">CAM-01 | --:--:--</div>
+            <div class="cam-off" id="esp32cam-fallback">📷 Đang chờ kết nối camera...</div>
+            <img id="esp32cam-img" src="" alt="Camera">
+          </div>
+        </div>
+
+        <!-- AI Analysis -->
+        <div class="bento-card ai-card">
+          <div class="bc-title"><i class="fas fa-brain"></i> AI Analysis</div>
+          <div class="ai-box">
+            <div class="ai-ring" id="aiRing">
+              <svg viewBox="0 0 100 100">
+                <circle cx="50" cy="50" r="42" class="ai-ring-bg" />
+                <circle cx="50" cy="50" r="42" class="ai-ring-fill" id="aiRingFill" />
+              </svg>
+              <div class="ai-ring-text" id="aiPct">—</div>
+            </div>
+            <div class="ai-info">
+              <div class="ai-status-text" id="aiText">Đang giám sát...</div>
+              <div class="ai-sub">Phân tích realtime</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Controls -->
+        <div class="bento-card ctrl-card">
+          <div class="bc-title"><i class="fas fa-gamepad"></i> Điều khiển nhanh</div>
+          <div class="ctrl-row" style="flex-direction: column; align-items: stretch; gap: 8px;">
+            <button class="ctrl-btn mute" onclick="muteAlarm()" style="width: 100%;"><i
+                class="fas fa-bell-slash"></i>Tắt còi</button>
+            <button class="ctrl-btn emergency" onclick="callFireDept()" style="width: 100%;"><i
+                class="fas fa-phone"></i>Gửi 114</button>
+            <div class="ctrl-toggle"
+              style="margin-left: 0; margin-top: 4px; justify-content: space-between; width: 100%;">
+              <span>Máy bơm nước (Relay 2)</span>
+              <div class="toggle" id="togglePump" onclick="togglePump()"></div>
+            </div>
+            <div class="ctrl-toggle"
+              style="margin-left: 0; margin-top: 4px; justify-content: space-between; width: 100%;">
+              <span>Quạt hút thông gió (Relay 1)</span>
+              <div class="toggle" id="toggleFan" onclick="toggleFan()"></div>
+            </div>
+            <div class="ctrl-toggle"
+              style="margin-left: 0; margin-top: 4px; justify-content: space-between; width: 100%;">
+              <span>Cửa sổ / Servo</span>
+              <div class="toggle" id="toggleWindow" onclick="toggleWindow()"></div>
+            </div>
+            <div class="ctrl-toggle"
+              style="margin-left: 0; margin-top: 4px; justify-content: space-between; width: 100%;">
+              <span>Demo cháy</span>
+              <div class="toggle" id="toggle" onclick="toggleFire()"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Floor Plan -->
+        <div class="bento-card floorplan-card span-2">
+          <div class="bc-title"><i class="fas fa-map-location-dot"></i> Sơ đồ căn hộ (Real-time Floor Plan)</div>
+          <div class="floorplan-container">
+            <!-- Room 1: Living Room -->
+            <div class="room-zone safe" id="zone-living">
+              <span class="room-title">Phòng Khách (Trạm Chính)</span>
+              <div class="room-stats">
+                <span>Khói: <strong id="planGas">--</strong> ppm</span>
+                <span>Cửa sổ: <strong id="planWindow">Đóng</strong></span>
+              </div>
+              <div class="room-devices">
+                <span class="device-badge" id="badge-pump">Bơm</span>
+                <span class="device-badge" id="badge-fan">Quạt</span>
+              </div>
+            </div>
+            <!-- Room 2: Bedroom -->
+            <div class="room-zone safe" id="zone-bed">
+              <span class="room-title">Phòng Ngủ (Trạm Phụ)</span>
+              <div class="room-stats">
+                <span>Nhiệt độ: <strong id="planTemp">--</strong> °C</span>
+                <span>Độ ẩm: <strong id="planHum">--</strong> %</span>
+              </div>
+              <div class="room-devices">
+                <span class="device-badge" id="badge-temp-trend">Bình thường</span>
+              </div>
+            </div>
+            <!-- Zone 3: Corridor -->
+            <div class="room-zone safe" id="zone-corridor">
+              <span class="room-title">Hành Lang (Camera)</span>
+              <div class="camera-indicator">
+                <i class="fas fa-video"></i>
+                <span>CAM 1</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Log (span full) -->
+        <div class="bento-card log-card span-3">
+          <div class="bc-title"><i class="fas fa-terminal"></i> Nhật ký sự kiện</div>
+          <div class="log-list" id="logEntries">
+            <div class="log-row"><span class="log-t">--:--:--</span><span class="log-m info">Đang kết nối
+                Firebase...</span></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========== SENSORS ========== -->
+    <section class="page" id="page-sensors">
+      <h2 class="page-title"><i class="fas fa-microchip"></i> Chi tiết cảm biến IoT</h2>
+      <div class="detail-grid">
+        <div class="detail-card">
+          <div class="dc-head">
+            <div class="sc-icon temp">🌡️</div>
+            <div>
+              <div class="dc-name">Nhiệt độ (Phòng ngủ)</div>
+              <div class="dc-sensor">DHT11</div>
+            </div>
+          </div>
+          <div class="dc-val" id="valTemp2">--<small>°C</small></div>
+          <div class="dc-row"><span>Ngưỡng</span><span class="accent">50°C</span></div>
+          <div class="dc-row"><span>Trạng thái</span><span class="ok" id="tempSt2">Bình thường</span></div>
+        </div>
+        <div class="detail-card">
+          <div class="dc-head">
+            <div class="sc-icon hum">💧</div>
+            <div>
+              <div class="dc-name">Độ ẩm (Phòng ngủ)</div>
+              <div class="dc-sensor">DHT11</div>
+            </div>
+          </div>
+          <div class="dc-val" id="valHum2">--<small>%</small></div>
+          <div class="dc-row"><span>Loại</span><span>Tương đối</span></div>
+          <div class="dc-row"><span>Trạng thái</span><span class="ok">Bình thường</span></div>
+        </div>
+        <div class="detail-card">
+          <div class="dc-head">
+            <div class="sc-icon gas">☁️</div>
+            <div>
+              <div class="dc-name">Khói / Gas (Phòng khách)</div>
+              <div class="dc-sensor">MQ-2</div>
+            </div>
+          </div>
+          <div class="dc-val" id="valGas2">--<small>ppm</small></div>
+          <div class="dc-row"><span>Ngưỡng</span><span class="accent">100 ppm</span></div>
+          <div class="dc-row"><span>Trạng thái</span><span class="ok" id="gasSt2">Bình thường</span></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========== CAMERA ========== -->
+    <section class="page" id="page-camera">
+      <h2 class="page-title"><i class="fas fa-video"></i> Camera giám sát</h2>
+      <div class="cam-full">
+        <div class="cam-view big">
+          <div class="cam-scan"></div>
+          <div class="c tl"></div>
+          <div class="c tr"></div>
+          <div class="c bl"></div>
+          <div class="c br"></div>
+          <div class="cam-ts" id="camTsFull">CAM-01 | FULLSCREEN</div>
+          <div class="cam-off" id="esp32cam-fallback-full">📷 Đang chờ kết nối camera...</div>
+          <img id="esp32cam-img-full" src="" alt="Camera">
+        </div>
+      </div>
+      <div class="detail-grid" style="margin-top:16px">
+        <div class="detail-card mini"><strong>Module</strong><br>ESP32-CAM AI-Thinker</div>
+        <div class="detail-card mini"><strong>Độ phân giải</strong><br>VGA 640×480</div>
+        <div class="detail-card mini"><strong>Stream</strong><br><code>192.168.25.106:81</code></div>
+      </div>
+    </section>
+
+    <!-- ========== HISTORY ========== -->
+    <section class="page" id="page-history">
+      <h2 class="page-title"><i class="fas fa-clock-rotate-left"></i> Lịch sử sự kiện</h2>
+      <div class="bento-card log-card">
+        <div class="log-list tall" id="historyLog">
+          <div class="log-row"><span class="log-t">--:--:--</span><span class="log-m info">Đang tải...</span></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========== SETTINGS ========== -->
+    <section class="page" id="page-settings">
+      <h2 class="page-title"><i class="fas fa-cog"></i> Cài đặt hệ thống</h2>
+      <div class="detail-grid two">
+        <div class="detail-card">
+          <div class="bc-title"><i class="fas fa-user"></i> Tài khoản</div>
+          <div class="dc-row"><span>Email</span><span id="sEmail">—</span></div>
+          <div class="dc-row"><span>Tên</span><span id="sName">—</span></div>
+          <div class="dc-row"><span>UID</span><span id="sUid" style="font-size:10px;font-family:var(--mono)">—</span>
+          </div><button class="ctrl-btn emergency" style="margin-top:14px;width:100%;justify-content:center"
+            onclick="if(confirm('Đăng xuất?'))logout()"><i class="fas fa-right-from-bracket"></i>Đăng xuất</button>
+        </div>
+        <div class="detail-card">
+          <div class="bc-title"><i class="fas fa-sliders"></i> Cấu hình</div>
+          <div class="dc-row"><span>Ngưỡng nhiệt</span><span class="accent">50°C</span></div>
+          <div class="dc-row"><span>Ngưỡng gas</span><span class="accent">100 ppm</span></div>
+          <div class="dc-row"><span>Camera IP hiện tại</span><span id="sCamIP"
+              style="font-family:var(--mono);font-size:12px">—</span></div>
+          <div class="dc-row" style="flex-direction:column;align-items:stretch;gap:6px;margin-top:8px">
+            <span style="font-size:12px;color:var(--text2)">Cập nhật IP Camera mới:</span>
+            <div style="display:flex;gap:6px">
+              <input id="inputCamIP" type="text" placeholder="Ví dụ: 192.168.1.100"
+                style="flex:1;padding:8px 12px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--text);font-family:var(--mono);font-size:13px;outline:none">
+              <button class="ctrl-btn mute" onclick="saveCameraIP()" style="padding:8px 14px;white-space:nowrap">
+                <i class="fas fa-save"></i> Lưu
+              </button>
+            </div>
+          </div>
+          <div class="dc-row" style="margin-top:8px"><span>Firebase</span><span class="ok">Đã kết nối</span></div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Notification panel -->
+  <div class="overlay" id="overlay" onclick="toggleNotifPanel()"></div>
+  <div class="notif-panel" id="notifPanel">
+    <div class="np-head">
+      <h3><i class="fas fa-bell"></i> Thông báo</h3><button onclick="toggleNotifPanel()"><i
+          class="fas fa-times"></i></button>
+    </div>
+    <div id="notifList">
+      <div class="np-empty"><i class="fas fa-bell-slash"></i>
+        <p>Chưa có thông báo</p>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/app.js"></script>
+  <script>
+    function switchPage(page, el) {
+      document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+      document.getElementById('page-' + page).classList.add('active');
+      document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+      if (el) el.classList.add('active');
+      if (page === 'sensors') syncSensors();
+      if (page === 'history') syncHistory();
+      if (page === 'settings') syncSettings();
+    }
+    function syncSensors() {
+      ['Temp', 'Hum', 'Gas'].forEach(k => { const v = document.getElementById('val' + k); if (v) { const t = document.getElementById('val' + k + '2'); if (t) t.innerHTML = v.textContent + '<small>' + (k === 'Temp' ? '°C' : k === 'Hum' ? '%' : 'ppm') + '</small>'; } });
+    }
+    function syncHistory() {
+      const c = document.getElementById('historyLog');
+      if (c && typeof logEntries !== 'undefined') c.innerHTML = logEntries.map(l => '<div class="log-row"><span class="log-t">' + l.time + '</span><span class="log-m ' + l.type + '">' + l.msg + '</span></div>').join('');
+    }
+    function syncSettings() {
+      const u = firebase.auth().currentUser;
+      if (u) { document.getElementById('sEmail').textContent = u.email || '—'; document.getElementById('sName').textContent = u.displayName || '—'; document.getElementById('sUid').textContent = u.uid || '—'; }
+    }
+    // Themes
+    const themes = {
+      default: { bg: '#060b18', surface: 'rgba(15,23,42,0.7)', text: '#f1f5f9', text2: '#94a3b8', text3: '#475569', border: 'rgba(255,255,255,0.06)', navBg: 'rgba(6,11,24,0.92)' },
+      ocean: { bg: '#0a192f', surface: 'rgba(17,34,64,0.7)', text: '#ccd6f6', text2: '#8892b0', text3: '#495670', border: 'rgba(100,200,255,0.06)', navBg: 'rgba(10,25,47,0.92)' },
+      emerald: { bg: '#041f1e', surface: 'rgba(10,47,45,0.7)', text: '#d1fae5', text2: '#6ee7b7', text3: '#34d399', border: 'rgba(52,211,153,0.08)', navBg: 'rgba(4,31,30,0.92)' },
+      purple: { bg: '#13071e', surface: 'rgba(26,10,46,0.7)', text: '#e9d5ff', text2: '#c084fc', text3: '#7c3aed', border: 'rgba(168,85,247,0.08)', navBg: 'rgba(19,7,30,0.92)' },
+      rose: { bg: '#1a0a14', surface: 'rgba(45,15,30,0.7)', text: '#fce7f3', text2: '#f9a8d4', text3: '#ec4899', border: 'rgba(244,114,182,0.08)', navBg: 'rgba(26,10,20,0.92)' },
+      light: { bg: '#f0f4f8', surface: 'rgba(255,255,255,0.85)', text: '#0f172a', text2: '#475569', text3: '#94a3b8', border: 'rgba(0,0,0,0.08)', navBg: 'rgba(255,255,255,0.92)' }
+    };
+    function setTheme(n) { const t = themes[n]; if (!t) return; const s = document.documentElement.style; Object.entries({ bg: t.bg, surface: t.surface, text: t.text, text2: t.text2, text3: t.text3, border: t.border }).forEach(([k, v]) => s.setProperty('--' + k, v)); document.body.style.background = t.bg; document.querySelector('.navbar').style.background = t.navBg; document.querySelectorAll('.t-opt').forEach(b => b.classList.remove('active')); const a = document.querySelector('[data-theme="' + n + '"]'); if (a) a.classList.add('active'); document.getElementById('themeSw').classList.remove('open'); localStorage.setItem('fs-theme', n); }
+    const sv = localStorage.getItem('fs-theme'); if (sv && themes[sv]) setTheme(sv);
+    document.addEventListener('click', e => { const s = document.getElementById('themeSw'); if (s && !s.contains(e.target)) s.classList.remove('open'); });
+  </script>
+</body>
+
+</html>
